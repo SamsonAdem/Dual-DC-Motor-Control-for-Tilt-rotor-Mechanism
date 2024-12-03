@@ -1,37 +1,93 @@
 #include <SparkFun_TB6612.h>
 
-#define AIN1 A2  // Direction control pin 1 for Motor A (analog pin 2)
-#define AIN2 A3  // Direction control pin 2 for Motor A (analog pin 3)
+#define AIN1 5  // Direction control pin 1 for Motor A
+#define AIN2 4  // Direction control pin 2 for Motor A
 #define PWMA 9
 #define STBY 8
+#define ENC1 2  // Green 
+#define ENC2 3  // Yellow
 
+volatile int posi = 0;
+long prevT = 0;
+float eprev = 0;
+float eintegral = 0;
 const int offsetA = 1;
 
-Motor motor1(AIN1, AIN2, PWMA, offsetA, STBY); // Adjusted constructor for library usage
+
+Motor motor1(AIN1, AIN2,PWMA, offsetA, STBY ); // Adjusted constructor for library usage
 
 void setup() {
-  pinMode(STBY, OUTPUT);
-  // Activate the motor driver by setting STBY to HIGH
-  digitalWrite(STBY, HIGH);
+  Serial.begin(9600);
+  pinMode(ENC1,INPUT);
+  pinMode(ENC2,INPUT);
+  attachInterrupt(digitalPinToInterrupt(ENC1), readEncoder, RISING);
+  Serial.println("target pos");
 }
 
 void loop() {
-  digitalWrite(STBY, HIGH);
+  // set target position
+  int target = 175*2;
+  //int target = 350*sin(prevT/1e6);
 
-  motor1.brake();  // Brake for instant stop
-  delay(2000);     // Brake for 2 seconds
+  // PID constants
+  float kp = 10;
+  float kd = 0.25;
+  float ki = 0.25;
+
+  // time difference
+  long currT = micros();
+  float deltaT = ((float) (currT - prevT))/( 1.0e6 );
+  prevT = currT;
+
+  // Read the position
+  int pos = 0; 
+  noInterrupts(); // disable interrupts temporarily while reading
+  pos = posi;
+  interrupts(); // turn interrupts back on
   
-  // Drive Motor A forward at full speed
-  motor1.drive(255);  // Full speed forward
-  delay(20000/12);       // Run for 2 seconds
+  // error
+  int e = pos - target;
 
-  motor1.brake();  // Brake for instant stop
-  delay(2000);     // Brake for 2 seconds
+  // derivative
+  float dedt = (e-eprev)/(deltaT);
 
-  motor1.drive(-255);  // Full speed backward
-  delay(20000/12);       // Run for 2 seconds
+  // integral
+  eintegral = eintegral + e*deltaT;
+
+  // control signal
+  float u = kp*e + kd*dedt + ki*eintegral;
+
+  // motor power
+  float pwr = fabs(u);
+  if( pwr > 255 ){
+    pwr = 255;
+  }
+
+  // motor direction
+  int dir = 1;
+  if(u<0){
+    dir = -1;
+  }
+
+  motor1.drive(pwr*dir);
   
-  // Brake Motor A
-  motor1.brake();  // Brake for instant stop
-  delay(2000);     // Brake for 2 seconds
+  // store previous error
+  eprev = e;
+
+  Serial.print(target);
+  Serial.print(" ");
+  Serial.print(pos);
+  Serial.println();
+
+}
+
+void readEncoder() {
+  int b = digitalRead(ENC2);
+
+  if(b>0){
+    posi++;
+  }
+  else{
+    posi--;
+  }
 }
