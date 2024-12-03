@@ -5,3 +5,9 @@ The controller requriments are:
 1. The actuation speed of the mechanism should be lessthan 2 seconds (end to end actuation).
 2. Robust and less subjected to noise and disturbance.
 3. The  postion of both motors should match and avoid latency between them.
+
+
+Components used
+
+1. Arduino Nano
+2. Dual H-bridge - DRV8876
