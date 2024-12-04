@@ -10,4 +10,4 @@ The controller requriments are:
 Components used
 
 1. Arduino Nano
-2. Dual H-bridge - DRV8876
+2. Dual Channel H-bridge - TBF1882
