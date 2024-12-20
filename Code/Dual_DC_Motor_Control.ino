@@ -140,3 +140,5 @@ void calculateAndDriveMotor(int error, float &prevError, float &integralError, M
 unsigned long LPF(unsigned long currentValue, unsigned long newValue, float alpha) {
   return (unsigned long)((alpha * newValue) + ((1 - alpha) * currentValue));
 }
+
+// updated contorl logic will be done on the next step
